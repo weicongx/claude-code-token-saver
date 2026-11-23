@@ -8,13 +8,14 @@ It uses only built-in Claude Code features: no third-party plugins, nothing on `
 
 | File | What it does |
 |---|---|
-| `agents/Explore.md` | Overrides the built-in **Explore** subagent to run on **Haiku**. The built-in runs on the parent session's model, which is Opus if that's your default. |
+| `agents/Explore.md` | Overrides the built-in **Explore** subagent to run on **Sonnet**. The built-in runs on the parent session's model, which is Opus if that's your default. |
 | `agents/validator.md` | **Haiku, medium effort.** Runs tests, builds and lint, saves the full log to `$TMPDIR/claude-logs/`, and returns pass/fail plus at most 5 verbatim failure excerpts and the log path. |
 | `agents/fixer.md` | **Sonnet, high effort.** Implements a precise, already-decided spec, stays in scope, stops on ambiguity, and returns a short change list. |
 | `CLAUDE.md` (marked block) | About 25 lines of global rules: terse replies (code, errors and commands stay exact), when to delegate to each agent, and context hygiene. Anything else already in your `CLAUDE.md` is kept. |
 | `skills/handoff/SKILL.md` | `/handoff` writes a note of 8 lines or fewer for continuing in a fresh session. It is user-invoked only (`disable-model-invocation`), so it costs nothing per turn. |
-| `statusline.js` | Status line: `Opus 5.5 \| ctx 64K (6%) \| my-project`. It adds `consider /compact` past 150K tokens. |
-| `settings.json` (merged) | `autoCompactWindow: 200000`, top level and for any per-model value above it, plus the `statusLine` entry (added only if you don't already have one). |
+| `hooks/status-hook.js` | `UserPromptSubmit` hook. On each prompt it reads the session transcript and passes `Opus 5.5 · high \| ctx 146K/200K (73%) \| my-project` (tokens against the auto-compact point) to Claude. A `CLAUDE.md` rule makes that the **first line of every reply**. Works in the desktop app, and adds `consider /compact` at 75% or more. |
+| `statusline.js` | Status line for the terminal CLI: `Opus 5.5 \| ctx 64K (6%) \| my-project`. It adds `consider /compact` past 150K tokens. |
+| `settings.json` (merged) | `autoCompactWindow: 200000`, top level and for any per-model value above it. Also the `statusLine` entry (added only if you don't already have one) and the `UserPromptSubmit` hook (added once). |
 
 Subagents get an explicit `tools:` allowlist. Per the Claude Code docs, that means they do **not**
 inherit MCP tools, so worker agents carry no MCP schemas.
@@ -38,13 +39,14 @@ Requires Node.js, which runs the status line and the settings merge.
    `RESULT / COMMAND / LOG` report.
 3. Ask "Quote the first heading of your user-level CLAUDE.md." The answer should be "Global working rules (token-saver)".
 4. Type `/handoff`. It should produce the GOAL/DONE/NEXT note.
-5. In the terminal CLI, the status line should show at the bottom. The desktop app may not render status lines.
+5. Every reply should start with a status line like `Opus 5.5 · high | ctx 12K/200K (6%) | my-project`.
+6. In the terminal CLI, the status line should show at the bottom. The desktop app may not render status lines.
 
 ## Design principles
 
 | Principle | Here |
 |---|---|
-| Tier models: frontier model plans and reviews, cheap model does volume work | Main session stays Opus. Explore and validator run on Haiku, fixer on Sonnet. |
+| Tier models: frontier model plans and reviews, cheap model does volume work | Main session stays Opus. Explore and fixer run on Sonnet, validator on Haiku. |
 | A validator keeps raw logs out of the main context | `validator` writes logs to a file and returns excerpts |
 | Worker agents get no MCP schemas and no skills | Explicit `tools:` allowlists |
 | Don't run test loops at max effort | Validator runs at `medium` |
@@ -54,7 +56,7 @@ Requires Node.js, which runs the status line and the settings merge.
 | Disable unused MCP servers, load lazily | Claude Code already defers MCP tool schemas by default (tool search) |
 | Fresh session per unrelated task, with a short handoff note | `/handoff` |
 | Logs in files, never pasted into chat | `CLAUDE.md` rule plus validator behaviour |
-| Live token visibility | Status line, plus `/context` and `/cost` |
+| Live token visibility | Status printed at the top of each reply (hook), terminal status line, `/context`, `/cost` |
 | Back up and merge, never clobber | Installer backups, marked `CLAUDE.md` block, non-destructive JSON merge |
 
 ## Deliberately left out
@@ -72,14 +74,16 @@ Requires Node.js, which runs the status line and the settings merge.
 
 ## Trade-offs to know
 
-- **Haiku Explore** is cheaper and faster but shallower. Use `-SkipExploreOverride` or delete
-  `~/.claude/agents/Explore.md` if searches start missing things.
+- **Sonnet Explore** costs less than Opus and searches nearly as well. Switch `model:` to `haiku`
+  for cheaper searches, or use `-SkipExploreOverride` to keep the built-in.
+- **The reply status** shows context as of the start of the turn, from the last main-session API
+  call. It costs about 30 tokens per prompt. Remove the hook and the first `CLAUDE.md` rule to drop it.
 - **Compacting at 200K** keeps each turn cheaper but summarizes earlier detail sooner. Re-run with
   a larger `-CompactWindow` or use `/autocompact` to tune it.
 - Terseness rules apply to prose only. If replies get too clipped, say "normal mode" or edit the block.
 
 ## Uninstall
 
-1. Delete `~/.claude/agents/{Explore,fixer,validator}.md`, `~/.claude/skills/handoff/` and `~/.claude/statusline.js`.
+1. Delete `~/.claude/agents/{Explore,fixer,validator}.md`, `~/.claude/skills/handoff/`, `~/.claude/statusline.js` and `~/.claude/hooks/status-hook.js`.
 2. Remove the `<!-- token-saver:begin -->` … `<!-- token-saver:end -->` block from `~/.claude/CLAUDE.md`.
 3. Restore `settings.json` from the earliest `~/.claude/token-saver-backup-*` folder.

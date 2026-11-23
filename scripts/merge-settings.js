@@ -48,5 +48,17 @@ if (!s.statusLine) {
   changes.push('note: a different statusLine already exists; left as is');
 }
 
+// 3. UserPromptSubmit hook that feeds the status into each prompt (shown at the top of replies).
+const hookScript = statusScript.replace(/statusline\.js$/, 'hooks/status-hook.js').replace(/\\/g, '/');
+const hookCommand = `node "${hookScript}"`;
+s.hooks = s.hooks || {};
+s.hooks.UserPromptSubmit = s.hooks.UserPromptSubmit || [];
+const already = s.hooks.UserPromptSubmit.some((group) =>
+  (group.hooks || []).some((h) => typeof h.command === 'string' && h.command.includes('status-hook.js')));
+if (!already) {
+  s.hooks.UserPromptSubmit.push({ hooks: [{ type: 'command', command: hookCommand, timeout: 10 }] });
+  changes.push(`hooks.UserPromptSubmit: added (${hookCommand})`);
+}
+
 fs.writeFileSync(settingsPath, JSON.stringify(s, null, 2) + '\n', 'utf8');
 console.log(changes.length ? changes.map((c) => '  ' + c).join('\n') : '  settings already up to date');

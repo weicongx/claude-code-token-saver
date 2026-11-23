@@ -1,7 +1,7 @@
 ---
 name: Explore
-description: Fast read-only codebase search on Haiku. Use it for broad searches across many files, directories or naming conventions when only the conclusion is needed, not the file contents. Specify breadth ("quick", "medium", "very thorough"). It locates code; it does not review, audit or edit it.
-model: haiku
+description: Read-only codebase search on Sonnet. Use it for broad searches across many files, directories or naming conventions when only the conclusion is needed, not the file contents. Specify breadth ("quick", "medium", "very thorough"). It locates code; it does not review, audit or edit it.
+model: sonnet
 tools: Read, Grep, Glob, Bash, PowerShell
 color: cyan
 ---
