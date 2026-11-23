@@ -79,6 +79,10 @@ is idempotent. Start a **new** session afterwards, since agents and `CLAUDE.md` 
 
 Requires Node.js, which runs the status line and the settings merge.
 
+The installer is Windows-only (PowerShell). On macOS or Linux, copy `agents/`, `skills/`, `hooks/` and
+`statusline.js` into `~/.claude/`, add the `CLAUDE.md` block by hand, and run
+`node scripts/merge-settings.js ~/.claude/settings.json ~/.claude/statusline.js` to merge the settings.
+
 ## Verify (in a new session)
 
 1. Ask "Which subagent types can you launch?" and check that `validator` and `fixer` are listed.
