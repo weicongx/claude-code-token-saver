@@ -16,7 +16,7 @@ It uses only built-in Claude Code features: no third-party plugins, nothing on `
 | `skills/compact-plan/SKILL.md` | `/compact-plan [what comes next]` has the main session read the plan ahead and output one ready-to-paste command, `/compact <focus>` or `/handoff`, plus a one-line reason. It is user-invoked only. |
 | `hooks/status-hook.js` | `UserPromptSubmit` hook. On each prompt it reads the session transcript and passes `Opus 5.5 · high \| ctx 146K/200K (73%) \| my-project` (tokens against the auto-compact point) to Claude. A `CLAUDE.md` rule makes that the **first line of every reply**. Works in the desktop app. At 75% or more it adds `consider /compact` and **compact advice** (see below). |
 | `statusline.js` | Status line for the terminal CLI: `Opus 5.5 \| ctx 64K (6%) \| my-project`. It adds `consider /compact` past 150K tokens. |
-| `settings.json` (merged) | `autoCompactWindow: 200000`, top level and for any per-model value above it. Also the `statusLine` entry (added only if you don't already have one) and the `UserPromptSubmit` hook (added once). |
+| `settings.json` (merged) | `autoCompactWindow: 200000`, top level and for any per-model value above it. Also the `statusLine` entry (added only if you don't already have one) and the `UserPromptSubmit`, `PostToolUse`, `PreCompact` and `SessionStart` (`compact`) hooks, each added once. |
 
 Subagents get an explicit `tools:` allowlist. Per the Claude Code docs, that means they do **not**
 inherit MCP tools, so worker agents carry no MCP schemas.
@@ -32,6 +32,29 @@ writes the command for you and you paste it.
 - The focus line is written by the **main session**, which already knows the plan ahead. A separate
   agent would start cold and would have to re-read the conversation just to write one line.
 - Run `/compact-plan` at any time to get the same command on demand.
+
+### During long uninterrupted turns (plan → approve → work)
+
+A long autonomous turn is a single prompt, so the advice above fires only once, at the start. If
+context reaches the auto-compact point mid-turn, Claude Code compacts with a generic summary. To
+make that compaction focused without stopping the work:
+
+1. **Mid-turn check (`PostToolUse`).** After every tool call, the hook silently recomputes context
+   use. The first time it crosses each band (75%, 82% and 90% by default), it asks Claude to finish the
+   current step, write a short note starting with `[token-saver focus]` (goal, plan file, steps done and
+   left, locked decisions, exact paths and errors, what to drop), then **keep working**. That's two or
+   three notes per session at most. Subagent tool calls are ignored.
+2. **Summarizer instructions (`PreCompact`).** Just before any compaction, auto or manual, the hook
+   finds the latest note in the transcript and prints it. Per the hooks docs, a `PreCompact` hook's
+   stdout becomes instructions for the compaction summary: keep the note verbatim and keep what it lists
+   in full detail. A matching `CLAUDE.md` rule backs this up.
+3. **Re-injection (`SessionStart`, matcher `compact`).** Right after any compaction, the hook finds
+   the latest note in the transcript and adds it back word for word, so it survives even if the
+   summary drops it.
+
+In effect, auto-compact runs with a focus that Claude wrote from the plan. Set `TOKEN_SAVER_PAUSE=1`
+if you'd rather have Claude stop at 90% and hand you an exact `/compact <focus>` command. You paste
+it, then type "continue".
 
 ## Install
 
@@ -91,6 +114,8 @@ Requires Node.js, which runs the status line and the settings merge.
   for cheaper searches, or use `-SkipExploreOverride` to keep the built-in.
 - **The reply status** shows context as of the start of the turn, from the last main-session API
   call. It costs about 30 tokens per prompt. Remove the hook and the first `CLAUDE.md` rule to drop it.
+- **The mid-turn check** starts Node once per tool call (tens of milliseconds) and costs no tokens
+  until a band is crossed. Each focus note costs about 150 output tokens.
 - **Compacting at 200K** keeps each turn cheaper but summarizes earlier detail sooner. Re-run with
   a larger `-CompactWindow` or use `/autocompact` to tune it.
 - Terseness rules apply to prose only. If replies get too clipped, say "normal mode" or edit the block.
@@ -100,3 +125,4 @@ Requires Node.js, which runs the status line and the settings merge.
 1. Delete `~/.claude/agents/{Explore,fixer,validator}.md`, `~/.claude/skills/handoff/`, `~/.claude/skills/compact-plan/`, `~/.claude/statusline.js` and `~/.claude/hooks/status-hook.js`.
 2. Remove the `<!-- token-saver:begin -->` … `<!-- token-saver:end -->` block from `~/.claude/CLAUDE.md`.
 3. Restore `settings.json` from the earliest `~/.claude/token-saver-backup-*` folder.
+4. Optionally delete the `claude-token-saver` folder in your temp directory, which holds the per-session band state.

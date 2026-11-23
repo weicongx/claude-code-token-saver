@@ -19,5 +19,7 @@
 - Read large files in line ranges when only part is needed.
 - When a self-contained slice of work is finished, suggest `/compact <focus>` instead of waiting for auto-compact.
 - If the prompt context has a `token-saver compact advice:` line, follow it: write the focus yourself from the plan ahead.
+- If a `token-saver:` note asks for a focus note mid-task, write it and keep working unless it says to stop.
+- When summarizing this conversation for a compaction, copy the latest `[token-saver focus]` note verbatim into the summary and keep what it lists in full detail.
 - When the next task is unrelated to the current one, suggest a fresh session (`/handoff` writes the note).
 - Project-specific rules belong in that project's CLAUDE.md, not here.
