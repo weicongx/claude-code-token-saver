@@ -70,7 +70,10 @@ it, then type "continue".
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-Options: `-CompactWindow 150000` (min 100000), `-SkipExploreOverride`, `-ClaudeDir <path>`.
+Options: `-CompactWindow 250000` (min 100000), `-SkipExploreOverride`, `-ClaudeDir <path>`.
+`-CompactWindow` sets the window exactly, raising or lowering it, at the top level and on any numeric
+per-model value. Without it, the first install lowers a window above 200K, and later re-installs
+leave the current window alone. With a 250K window the status reads `ctx …/217K`.
 The installer backs up everything it touches to `~/.claude/token-saver-backup-<timestamp>/` and
 is idempotent. Start a **new** session afterwards, since agents and `CLAUDE.md` load at session start.
 

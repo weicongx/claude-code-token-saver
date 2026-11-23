@@ -26,13 +26,20 @@ if (fs.existsSync(settingsPath)) {
 const changes = [];
 
 // 1. Compact earlier (default 200K; Claude Code minimum is 100K).
-if (typeof s.autoCompactWindow !== 'number' || s.autoCompactWindow > WINDOW) {
+// An explicit window sets the value exactly (raise or lower). Without one, the first install
+// lowers values above the 200K default, and later re-installs leave the window alone, so a
+// re-install never undoes a value you chose with -CompactWindow or /autocompact.
+const EXPLICIT = Boolean(windowArg);
+const installedBefore = Object.values(s.hooks || {}).some((groups) => Array.isArray(groups) &&
+  groups.some((g) => (g.hooks || []).some((h) => typeof h.command === 'string' && h.command.includes('status-hook.js'))));
+const needs = (v) => typeof v === 'number' && (EXPLICIT ? v !== WINDOW : !installedBefore && v > WINDOW);
+if (typeof s.autoCompactWindow !== 'number' || needs(s.autoCompactWindow)) {
   changes.push(`autoCompactWindow: ${JSON.stringify(s.autoCompactWindow)} -> ${WINDOW}`);
   s.autoCompactWindow = WINDOW;
 }
-// Per-model values override the top-level one, so lower any that are larger.
+// Per-model values override the top-level one, so bring numeric ones in line too.
 for (const [model, cfg] of Object.entries(s.modelSettings || {})) {
-  if (cfg && typeof cfg.autoCompactWindow === 'number' && cfg.autoCompactWindow > WINDOW) {
+  if (cfg && needs(cfg.autoCompactWindow)) {
     changes.push(`modelSettings.${model}.autoCompactWindow: ${cfg.autoCompactWindow} -> ${WINDOW}`);
     cfg.autoCompactWindow = WINDOW;
   } else if (cfg && cfg.autoCompactWindow === 'auto') {

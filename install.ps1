@@ -72,7 +72,11 @@ Write-Host 'CLAUDE.md: token-saver block written'
 
 # 4. settings.json merge (auto-compact window + status line)
 Write-Host 'settings.json:'
-node (Join-Path $repo 'scripts\merge-settings.js') (Join-Path $ClaudeDir 'settings.json') (Join-Path $ClaudeDir 'statusline.js') $CompactWindow
+$mergeArgs = @((Join-Path $repo 'scripts\merge-settings.js'), (Join-Path $ClaudeDir 'settings.json'), (Join-Path $ClaudeDir 'statusline.js'))
+# Pass the window only when given explicitly: then it is set exactly. Otherwise the first install
+# lowers values above 200K and later re-installs keep whatever window is set.
+if ($PSBoundParameters.ContainsKey('CompactWindow')) { $mergeArgs += $CompactWindow }
+node @mergeArgs
 if ($LASTEXITCODE -ne 0) { throw 'settings merge failed; settings.json left unchanged.' }
 
 Write-Host "`nDone. Start a new Claude Code session to pick up the changes."
