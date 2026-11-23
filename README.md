@@ -129,12 +129,17 @@ Requires Node.js, which runs the status line and the settings merge.
   until a band is crossed. Each focus note costs about 150 output tokens.
 - **Compacting at 200K** keeps each turn cheaper but summarizes earlier detail sooner. Re-run with
   a larger `-CompactWindow` or use `/autocompact` to tune it.
-- **Fixed overhead is large.** In the desktop app, the first API call of a measured session was already
-  71K tokens (system prompt, app tools, connectors), and context restarted at about 92K after a
-  compaction (71K plus a 21K summary). With a 200K window, that leaves about 97K of working room before
-  the first compaction and about 75K after each later one. Run `/context` to see your breakdown, and turn
-  off connectors you don't use. For long autonomous runs, `-CompactWindow 250000` roughly doubles the
-  room per cycle, but each call costs more.
+- **Fixed overhead is large, and mostly not yours to cut.** In the desktop app, the first API call of a
+  measured session was already 71K tokens (system prompt, app tools and their instructions), and context
+  restarted at about 92K after a compaction (71K plus a 21K summary). With a 200K window, that leaves
+  about 97K of working room before the first compaction and about 75K after each later one. With 250K,
+  it leaves about 146K and 125K, but each call costs more.
+- **Turning off unused connectors barely helps.** In a re-measured session, turning off a connector,
+  Workflows (`"enableWorkflows": false`) and prompt suggestions changed the first call from 71K to
+  70.8K. Tools you don't use are deferred and cost only their names until loaded. What costs real
+  tokens is tools loaded in full in every session, such as the desktop app's built-in browser
+  (Settings → Claude Code → Browser). Turn those off if you never use them, and run `/context` to see
+  your breakdown.
 - Terseness rules apply to prose only. If replies get too clipped, say "normal mode" or edit the block.
 
 ## Uninstall
