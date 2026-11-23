@@ -8,7 +8,7 @@
 - If I say "normal mode", stop being terse for the rest of the session.
 
 ## Delegation (main session = planner, designer, reviewer)
-- Broad codebase searches → `Explore` subagent (Haiku). Ask for `path:line` pointers, not file dumps.
+- Broad codebase searches → `Explore` subagent (Sonnet). Ask for `path:line` pointers, not file dumps.
 - Test suites, builds, lint, type checks → `validator` subagent (Haiku). Don't run noisy commands in the main session.
 - Well-specified, scoped implementation (files named, spec and acceptance check clear) → `fixer` subagent (Sonnet).
 - Keep architecture, design, hard debugging and final review in the main session.
