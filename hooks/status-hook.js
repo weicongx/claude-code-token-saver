@@ -7,6 +7,8 @@ const os = require('os');
 const path = require('path');
 
 const TAIL_BYTES = 1024 * 1024; // only the end of the transcript is needed
+const WARN_PCT = Number(process.env.TOKEN_SAVER_COMPACT_PCT) || 75; // suggest a compact command at slice ends
+const URGENT_PCT = Number(process.env.TOKEN_SAVER_URGENT_PCT) || 90; // suggest one on every reply
 
 function readTail(file) {
   const fd = fs.openSync(file, 'r');
@@ -59,6 +61,7 @@ function main(input) {
   const cwd = input.cwd || process.cwd();
   const folder = cwd.split(/[\\/]/).filter(Boolean).pop() || '';
   let parts;
+  let advice = '';
 
   const entry = input.transcript_path && fs.existsSync(input.transcript_path)
     ? lastMainAssistant(input.transcript_path)
@@ -79,7 +82,17 @@ function main(input) {
     if (win) {
       const pct = Math.round((used / win) * 100);
       ctx += `/${Math.round(win / 1000)}K (${pct}%)`;
-      if (pct >= 75) warn = 'consider /compact';
+      if (pct >= WARN_PCT) {
+        warn = 'consider /compact';
+        const when = pct >= URGENT_PCT
+          ? 'Auto-compact is close: do this at the end of this reply.'
+          : 'Do this only if this reply finishes a self-contained piece of work.';
+        advice = `token-saver compact advice: ${when} Based on the plan of tasks still ahead, ` +
+          'end the reply with one fenced code block holding the single best command for the user to run: ' +
+          'either `/compact <focus>` (focus = the goal, remaining steps, decisions not to reopen, exact paths/names/errors still ' +
+          'needed, and what can be dropped; under ~500 characters) or `/handoff` if the remaining work is unrelated to this ' +
+          'conversation. Add one short line saying why.';
+      }
     }
     parts = [prettyModel(model) + (effort ? ` · ${effort}` : ''), ctx, warn, folder];
   }
@@ -88,7 +101,7 @@ function main(input) {
   return {
     hookSpecificOutput: {
       hookEventName: 'UserPromptSubmit',
-      additionalContext: `token-saver status: ${status}`,
+      additionalContext: `token-saver status: ${status}` + (advice ? `\n${advice}` : ''),
     },
   };
 }

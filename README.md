@@ -13,12 +13,25 @@ It uses only built-in Claude Code features: no third-party plugins, nothing on `
 | `agents/fixer.md` | **Sonnet, high effort.** Implements a precise, already-decided spec, stays in scope, stops on ambiguity, and returns a short change list. |
 | `CLAUDE.md` (marked block) | About 25 lines of global rules: terse replies (code, errors and commands stay exact), when to delegate to each agent, and context hygiene. Anything else already in your `CLAUDE.md` is kept. |
 | `skills/handoff/SKILL.md` | `/handoff` writes a note of 8 lines or fewer for continuing in a fresh session. It is user-invoked only (`disable-model-invocation`), so it costs nothing per turn. |
-| `hooks/status-hook.js` | `UserPromptSubmit` hook. On each prompt it reads the session transcript and passes `Opus 5.5 · high \| ctx 146K/200K (73%) \| my-project` (tokens against the auto-compact point) to Claude. A `CLAUDE.md` rule makes that the **first line of every reply**. Works in the desktop app, and adds `consider /compact` at 75% or more. |
+| `skills/compact-plan/SKILL.md` | `/compact-plan [what comes next]` has the main session read the plan ahead and output one ready-to-paste command, `/compact <focus>` or `/handoff`, plus a one-line reason. It is user-invoked only. |
+| `hooks/status-hook.js` | `UserPromptSubmit` hook. On each prompt it reads the session transcript and passes `Opus 5.5 · high \| ctx 146K/200K (73%) \| my-project` (tokens against the auto-compact point) to Claude. A `CLAUDE.md` rule makes that the **first line of every reply**. Works in the desktop app. At 75% or more it adds `consider /compact` and **compact advice** (see below). |
 | `statusline.js` | Status line for the terminal CLI: `Opus 5.5 \| ctx 64K (6%) \| my-project`. It adds `consider /compact` past 150K tokens. |
 | `settings.json` (merged) | `autoCompactWindow: 200000`, top level and for any per-model value above it. Also the `statusLine` entry (added only if you don't already have one) and the `UserPromptSubmit` hook (added once). |
 
 Subagents get an explicit `tools:` allowlist. Per the Claude Code docs, that means they do **not**
 inherit MCP tools, so worker agents carry no MCP schemas.
+
+## Automatic compact advice
+
+Claude Code doesn't let hooks or Claude run `/compact`, so this setup does the next best thing: it
+writes the command for you and you paste it.
+
+- **75% or more** of the compact window (`TOKEN_SAVER_COMPACT_PCT`): at the end of a reply that finishes a
+  self-contained piece of work, Claude adds one fenced `/compact <focus>` (or `/handoff`) command and a reason.
+- **90% or more** (`TOKEN_SAVER_URGENT_PCT`): it does this on every reply, because auto-compact is close.
+- The focus line is written by the **main session**, which already knows the plan ahead. A separate
+  agent would start cold and would have to re-read the conversation just to write one line.
+- Run `/compact-plan` at any time to get the same command on demand.
 
 ## Install
 
@@ -38,7 +51,7 @@ Requires Node.js, which runs the status line and the settings merge.
 2. Ask for something like "use the validator to run `node --version`". You should get the short
    `RESULT / COMMAND / LOG` report.
 3. Ask "Quote the first heading of your user-level CLAUDE.md." The answer should be "Global working rules (token-saver)".
-4. Type `/handoff`. It should produce the GOAL/DONE/NEXT note.
+4. Type `/handoff`. It should produce the GOAL/DONE/NEXT note. Then type `/compact-plan`, which should output one command block plus a reason.
 5. Every reply should start with a status line like `Opus 5.5 · high | ctx 12K/200K (6%) | my-project`.
 6. In the terminal CLI, the status line should show at the bottom. The desktop app may not render status lines.
 
@@ -50,7 +63,7 @@ Requires Node.js, which runs the status line and the settings merge.
 | A validator keeps raw logs out of the main context | `validator` writes logs to a file and returns excerpts |
 | Worker agents get no MCP schemas and no skills | Explicit `tools:` allowlists |
 | Don't run test loops at max effort | Validator runs at `medium` |
-| Compress at phase boundaries, not at 95% full | `/compact <focus>` rule, plus auto-compact at 200K instead of the default (about 967K on 1M-token models) |
+| Compress at phase boundaries, not at 95% full | Automatic compact advice at 75% and 90%, `/compact-plan`, plus auto-compact at 200K instead of the default (about 967K on 1M-token models) |
 | Terse output, but code, errors and commands stay exact, and normal mode for warnings | "Lite" terseness rule. Say "normal mode" to switch it off. |
 | Global instructions stay small; project rules live in the repo | Global block is about 25 lines |
 | Disable unused MCP servers, load lazily | Claude Code already defers MCP tool schemas by default (tool search) |
@@ -84,6 +97,6 @@ Requires Node.js, which runs the status line and the settings merge.
 
 ## Uninstall
 
-1. Delete `~/.claude/agents/{Explore,fixer,validator}.md`, `~/.claude/skills/handoff/`, `~/.claude/statusline.js` and `~/.claude/hooks/status-hook.js`.
+1. Delete `~/.claude/agents/{Explore,fixer,validator}.md`, `~/.claude/skills/handoff/`, `~/.claude/skills/compact-plan/`, `~/.claude/statusline.js` and `~/.claude/hooks/status-hook.js`.
 2. Remove the `<!-- token-saver:begin -->` … `<!-- token-saver:end -->` block from `~/.claude/CLAUDE.md`.
 3. Restore `settings.json` from the earliest `~/.claude/token-saver-backup-*` folder.

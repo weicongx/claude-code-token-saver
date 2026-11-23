@@ -18,5 +18,6 @@
 - Send long command output to a file and read it with grep/tail; never dump it into the conversation.
 - Read large files in line ranges when only part is needed.
 - When a self-contained slice of work is finished, suggest `/compact <focus>` instead of waiting for auto-compact.
+- If the prompt context has a `token-saver compact advice:` line, follow it: write the focus yourself from the plan ahead.
 - When the next task is unrelated to the current one, suggest a fresh session (`/handoff` writes the note).
 - Project-specific rules belong in that project's CLAUDE.md, not here.

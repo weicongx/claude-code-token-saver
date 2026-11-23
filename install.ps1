@@ -24,7 +24,7 @@ New-Item -ItemType Directory -Force $ClaudeDir | Out-Null
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $backup = Join-Path $ClaudeDir "token-saver-backup-$stamp"
 New-Item -ItemType Directory -Force $backup | Out-Null
-foreach ($rel in 'settings.json', 'CLAUDE.md', 'statusline.js', 'hooks\status-hook.js', 'agents\validator.md', 'agents\fixer.md', 'agents\Explore.md', 'skills\handoff\SKILL.md') {
+foreach ($rel in 'settings.json', 'CLAUDE.md', 'statusline.js', 'hooks\status-hook.js', 'agents\validator.md', 'agents\fixer.md', 'agents\Explore.md', 'skills\handoff\SKILL.md', 'skills\compact-plan\SKILL.md') {
     $src = Join-Path $ClaudeDir $rel
     if (Test-Path $src) {
         $dst = Join-Path $backup $rel
@@ -35,15 +35,19 @@ foreach ($rel in 'settings.json', 'CLAUDE.md', 'statusline.js', 'hooks\status-ho
 Write-Host "Backup: $backup"
 
 # 2. Subagents, skill, status line script
-New-Item -ItemType Directory -Force (Join-Path $ClaudeDir 'agents'), (Join-Path $ClaudeDir 'skills\handoff') | Out-Null
+New-Item -ItemType Directory -Force (Join-Path $ClaudeDir 'agents') | Out-Null
 $agents = @('validator.md', 'fixer.md')
 if (-not $SkipExploreOverride) { $agents += 'Explore.md' }
 foreach ($a in $agents) { Copy-Item (Join-Path $repo "agents\$a") (Join-Path $ClaudeDir "agents\$a") -Force }
-Copy-Item (Join-Path $repo 'skills\handoff\SKILL.md') (Join-Path $ClaudeDir 'skills\handoff\SKILL.md') -Force
+$skills = @('handoff', 'compact-plan')
+foreach ($sk in $skills) {
+    New-Item -ItemType Directory -Force (Join-Path $ClaudeDir "skills\$sk") | Out-Null
+    Copy-Item (Join-Path $repo "skills\$sk\SKILL.md") (Join-Path $ClaudeDir "skills\$sk\SKILL.md") -Force
+}
 Copy-Item (Join-Path $repo 'statusline.js') (Join-Path $ClaudeDir 'statusline.js') -Force
 New-Item -ItemType Directory -Force (Join-Path $ClaudeDir 'hooks') | Out-Null
 Copy-Item (Join-Path $repo 'hooks\status-hook.js') (Join-Path $ClaudeDir 'hooks\status-hook.js') -Force
-Write-Host "Agents: $($agents -join ', '); skill: /handoff; statusline.js; hooks/status-hook.js"
+Write-Host "Agents: $($agents -join ', '); skills: /$($skills -join ', /'); statusline.js; hooks/status-hook.js"
 
 # 3. CLAUDE.md: insert or replace a marked block, keep everything else
 $begin = '<!-- token-saver:begin -->'
