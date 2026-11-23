@@ -24,7 +24,7 @@ New-Item -ItemType Directory -Force $ClaudeDir | Out-Null
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $backup = Join-Path $ClaudeDir "token-saver-backup-$stamp"
 New-Item -ItemType Directory -Force $backup | Out-Null
-foreach ($rel in 'settings.json', 'CLAUDE.md', 'statusline.js', 'hooks\status-hook.js', 'agents\validator.md', 'agents\fixer.md', 'agents\Explore.md', 'skills\handoff\SKILL.md', 'skills\compact-plan\SKILL.md') {
+foreach ($rel in 'settings.json', 'CLAUDE.md', 'statusline.js', 'hooks\status-hook.js', 'hooks\token-saver-lib.js','agents\validator.md', 'agents\fixer.md', 'agents\Explore.md', 'skills\handoff\SKILL.md', 'skills\compact-plan\SKILL.md') {
     $src = Join-Path $ClaudeDir $rel
     if (Test-Path $src) {
         $dst = Join-Path $backup $rel
@@ -46,8 +46,10 @@ foreach ($sk in $skills) {
 }
 Copy-Item (Join-Path $repo 'statusline.js') (Join-Path $ClaudeDir 'statusline.js') -Force
 New-Item -ItemType Directory -Force (Join-Path $ClaudeDir 'hooks') | Out-Null
-Copy-Item (Join-Path $repo 'hooks\status-hook.js') (Join-Path $ClaudeDir 'hooks\status-hook.js') -Force
-Write-Host "Agents: $($agents -join ', '); skills: /$($skills -join ', /'); statusline.js; hooks/status-hook.js"
+foreach ($h in 'status-hook.js', 'token-saver-lib.js') {
+    Copy-Item (Join-Path $repo "hooks\$h") (Join-Path $ClaudeDir "hooks\$h") -Force
+}
+Write-Host "Agents: $($agents -join ', '); skills: /$($skills -join ', /'); statusline.js; hooks/status-hook.js + token-saver-lib.js"
 
 # 3. CLAUDE.md: insert or replace a marked block, keep everything else
 $begin = '<!-- token-saver:begin -->'

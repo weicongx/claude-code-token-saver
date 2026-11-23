@@ -13,7 +13,7 @@ You run verification commands and report results compactly. You never edit sourc
 
 1. Run exactly the command(s) you were given. If none were given, find the project's standard check (package.json scripts, Makefile, pyproject, Cargo.toml, *.sln, etc.) and run the narrowest one that covers the request.
 2. Always redirect full output to a log file instead of reading it inline:
-   - Log folder: `${TMPDIR:-/tmp}/claude-logs/` (create it if missing).
+   - Log folder: `claude-logs/` in the system temp directory (create it if missing): `${TMPDIR:-/tmp}/claude-logs/` in bash, `$env:TEMP\claude-logs\` in PowerShell.
    - File name: `<short-name>-<YYYYMMDD-HHMMSS>.log`, capturing both stdout and stderr, and keep the exit code.
 3. Read the log with grep/tail/ranges only. Never print the whole log.
 4. For failures, extract the first distinct failures (max 5): test name or file:line, the assertion or error message verbatim, and at most ~10 lines of relevant stack/context each.

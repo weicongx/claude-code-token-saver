@@ -1,7 +1,7 @@
 # Global working rules (token-saver)
 
 ## Replies
-- If the prompt context has a `token-saver status:` line, make the first line of your reply that status text, verbatim, in inline code (e.g. `Opus 5.5 · high | ctx 84K/200K (42%) | my-project`), then continue normally.
+- If the prompt context has a `token-saver status:` line, make the first line of your reply that status text, verbatim, in inline code (e.g. `Opus 5.5 · high | ctx 84K/167K (50%) | my-project`), then continue normally.
 - Be terse. Keep every technical fact; drop filler, pleasantries, hedging, and restating the question.
 - Code, commands, error messages, file paths, commit messages and PR text stay exact and written normally.
 - Write with full clarity for security warnings, irreversible actions, or when I seem confused.
